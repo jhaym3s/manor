@@ -23,9 +23,7 @@ class _PendingBillsScreenState extends State<PendingBillsScreen> {
 
   List<Bill> get filteredBills {
     List<Bill> filtered = List.from(widget.bills);
-
     
-
     if (_filterStatus == 'pending') {
       filtered = filtered.where((b) => b.status != 'paid').toList();
     } else if (_filterStatus != 'all') {
