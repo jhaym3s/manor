@@ -1,8 +1,9 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:manor/core/theme/app_colors.dart';
+import 'package:manor/core/theme/app_theme.dart';
 import '../models/access_code.dart';
+import '../widgets/create_access_code_sheet.dart';
 
 class AccessScreen extends StatefulWidget {
   const AccessScreen({super.key});
@@ -14,10 +15,6 @@ class AccessScreen extends StatefulWidget {
 class _AccessScreenState extends State<AccessScreen> {
   List<AccessCode> accessCodes = AccessCode.getSampleCodes();
   String? copiedCode;
-
-  String _generateCode() {
-    return (100000 + Random().nextInt(900000)).toString();
-  }
 
   void _copyCode(String code) {
     Clipboard.setData(ClipboardData(text: code));
@@ -44,208 +41,9 @@ class _AccessScreenState extends State<AccessScreen> {
   }
 
   void _showNewCodeModal() {
-    String codeName = '';
-    String codeType = 'one-time';
-    String duration = '24';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-          ),
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 36,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFCBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Create Access Code',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  const Text(
-                    'Generate a gate code for your visitor',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Name Input
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Name / Purpose',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextField(
-                        onChanged: (value) => setModalState(() => codeName = value),
-                        decoration: const InputDecoration(
-                          hintText: 'e.g., Plumber, Friend',
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-
-                  // Code Type
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Code Type',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildTypeButton('⏱ Once', 'one-time', codeType, (type) {
-                            setModalState(() => codeType = type);
-                          }),
-                          const SizedBox(width: 8),
-                          _buildTypeButton('🔄 Weekly', 'recurring', codeType, (type) {
-                            setModalState(() => codeType = type);
-                          }),
-                          const SizedBox(width: 8),
-                          _buildTypeButton('∞ Always', 'permanent', codeType, (type) {
-                            setModalState(() => codeType = type);
-                          }),
-                        ],
-                      ),
-                    ],
-                  ),
-
-                  if (codeType == 'one-time') ...[
-                    const SizedBox(height: 18),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Valid For',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: duration,
-                          decoration: const InputDecoration(),
-                          items: const [
-                            DropdownMenuItem(value: '1', child: Text('1 hour')),
-                            DropdownMenuItem(value: '6', child: Text('6 hours')),
-                            DropdownMenuItem(value: '24', child: Text('24 hours')),
-                            DropdownMenuItem(value: '72', child: Text('3 days')),
-                          ],
-                          onChanged: (value) => setModalState(() => duration = value ?? '24'),
-                        ),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Cancel'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: codeName.isNotEmpty
-                              ? () {
-                                  final newCode = AccessCode(
-                                    id: DateTime.now().millisecondsSinceEpoch,
-                                    name: codeName,
-                                    code: _generateCode(),
-                                    type: codeType,
-                                    expires: codeType == 'permanent'
-                                        ? null
-                                        : codeType == 'one-time'
-                                            ? '${duration}h'
-                                            : 'Weekly',
-                                  );
-                                  setState(() => accessCodes.add(newCode));
-                                  Navigator.pop(context);
-                                }
-                              : null,
-                          child: const Text('Generate Code'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTypeButton(String label, String type, String selectedType, Function(String) onTap) {
-    final isSelected = selectedType == type;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => onTap(type),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.successLight : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : AppColors.border,
-              width: 2,
-            ),
-          ),
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
-            ),
-          ),
-        ),
-      ),
+    CreateAccessCodeSheet.show(
+      context,
+      onCreate: (newCode) => setState(() => accessCodes.add(newCode)),
     );
   }
 
@@ -256,21 +54,14 @@ class _AccessScreenState extends State<AccessScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Access Codes',
-            style: TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
-            ),
+            style: Theme.of(context).textTheme.headlineLarge,
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'Manage gate access for visitors',
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 20),
 
@@ -302,7 +93,7 @@ class _AccessScreenState extends State<AccessScreen> {
         typeColor = AppColors.info;
         break;
       default:
-        typeColor = const Color(0xFF6366F1);
+        typeColor = AppColors.purple;
     }
 
     return Container(
@@ -310,14 +101,8 @@ class _AccessScreenState extends State<AccessScreen> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 12,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+        boxShadow: AppTheme.cardShadow,
       ),
       child: Column(
         children: [
@@ -331,11 +116,7 @@ class _AccessScreenState extends State<AccessScreen> {
                 children: [
                   Text(
                     code.name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Container(
