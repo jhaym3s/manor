@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:manor/blocs/auth/auth_bloc.dart';
 import 'package:manor/core/theme/app_colors.dart';
 
 class AppHeader extends StatelessWidget {
@@ -6,12 +8,22 @@ class AppHeader extends StatelessWidget {
 
   const AppHeader({super.key, this.onNotificationTap});
 
+  String _initials(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty || parts.first.isEmpty) return '?';
+    final first = parts.first[0];
+    final last = parts.length > 1 ? parts.last[0] : '';
+    return '$first$last'.toUpperCase();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final fullName = context.select<AuthBloc, String>(
+      (bloc) => bloc.state.user?.fullName ?? 'Resident',
+    );
+
     return Container(
-      decoration: const BoxDecoration(
-        gradient: AppColors.headerGradient,
-      ),
+      decoration: const BoxDecoration(gradient: AppColors.headerGradient),
       child: SafeArea(
         bottom: false,
         child: Padding(
@@ -31,10 +43,10 @@ class AppHeader extends StatelessWidget {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(14),
                         ),
-                        child: const Center(
+                        child: Center(
                           child: Text(
-                            'JI',
-                            style: TextStyle(
+                            _initials(fullName),
+                            style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -53,9 +65,9 @@ class AppHeader extends StatelessWidget {
                               color: Colors.white.withOpacity(0.8),
                             ),
                           ),
-                          const Text(
-                            'James Ifiok',
-                            style: TextStyle(
+                          Text(
+                            fullName,
+                            style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                               color: Colors.white,
@@ -105,7 +117,10 @@ class AppHeader extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(20),
@@ -113,11 +128,7 @@ class AppHeader extends StatelessWidget {
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.home_outlined,
-                      size: 14,
-                      color: Colors.white,
-                    ),
+                    Icon(Icons.home_outlined, size: 14, color: Colors.white),
                     SizedBox(width: 6),
                     Text(
                       '40 UDI',

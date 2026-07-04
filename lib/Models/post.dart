@@ -75,7 +75,8 @@ class Post {
         avatar: '🏢',
         isOfficial: true,
         isPinned: true,
-        content: '🚨 IMPORTANT: Water supply will be interrupted tomorrow (Dec 16) from 10AM - 2PM for tank maintenance. Please store water accordingly.',
+        content:
+            '🚨 IMPORTANT: Water supply will be interrupted tomorrow (Dec 16) from 10AM - 2PM for tank maintenance. Please store water accordingly.',
         time: '2h ago',
         likes: 24,
         comments: 8,
@@ -85,7 +86,8 @@ class Post {
         author: 'Mrs. Okonkwo',
         handle: '@unit_15a',
         avatar: '👩🏾',
-        content: 'Has anyone seen a brown tabby cat? She went missing yesterday around Block C. Answers to "Mimi". Please contact me if found! 🐱',
+        content:
+            'Has anyone seen a brown tabby cat? She went missing yesterday around Block C. Answers to "Mimi". Please contact me if found! 🐱',
         time: '3h ago',
         likes: 12,
         comments: 15,
@@ -97,7 +99,8 @@ class Post {
         handle: '@management',
         avatar: '🏢',
         isOfficial: true,
-        content: '📋 Reminder: December service charge is due by Dec 20th. Late payments will attract a 5% penalty. Pay via the Bills section in this app.',
+        content:
+            '📋 Reminder: December service charge is due by Dec 20th. Late payments will attract a 5% penalty. Pay via the Bills section in this app.',
         time: '5h ago',
         likes: 8,
         comments: 3,
@@ -107,7 +110,8 @@ class Post {
         author: 'Mr. Adewale',
         handle: '@unit_8b',
         avatar: '👨🏿',
-        content: 'Good morning neighbors! I have some extra plantain suckers if anyone wants to start a small garden. First come, first served! 🌱',
+        content:
+            'Good morning neighbors! I have some extra plantain suckers if anyone wants to start a small garden. First come, first served! 🌱',
         time: '6h ago',
         likes: 31,
         comments: 12,
@@ -118,7 +122,8 @@ class Post {
         handle: '@security',
         avatar: '🛡️',
         isOfficial: true,
-        content: '⚠️ Security Alert: Please ensure all vehicles are parked in designated areas only. Vehicles parked on walkways will be towed.',
+        content:
+            '⚠️ Security Alert: Please ensure all vehicles are parked in designated areas only. Vehicles parked on walkways will be towed.',
         time: '8h ago',
         likes: 15,
         comments: 4,
@@ -128,7 +133,8 @@ class Post {
         author: 'Mrs. Chen',
         handle: '@unit_3c',
         avatar: '👩🏻',
-        content: 'Thank you to whoever returned my son\'s bicycle to the security post! Faith in humanity restored 🙏',
+        content:
+            'Thank you to whoever returned my son\'s bicycle to the security post! Faith in humanity restored 🙏',
         time: '1d ago',
         likes: 45,
         comments: 8,
@@ -140,7 +146,8 @@ class Post {
         handle: '@management',
         avatar: '🏢',
         isOfficial: true,
-        content: '🎄 Season\'s Greetings! The annual Christmas decoration competition starts Dec 18th. Register your unit at the management office. Prizes for top 3!',
+        content:
+            '🎄 Season\'s Greetings! The annual Christmas decoration competition starts Dec 18th. Register your unit at the management office. Prizes for top 3!',
         time: '1d ago',
         likes: 52,
         comments: 21,
@@ -151,7 +158,8 @@ class Post {
         handle: '@unit_12b',
         avatar: 'JA',
         isMe: true,
-        content: 'Just moved in last week. Happy to be part of this community! Looking forward to meeting everyone. 👋',
+        content:
+            'Just moved in last week. Happy to be part of this community! Looking forward to meeting everyone. 👋',
         time: '2d ago',
         likes: 38,
         comments: 14,

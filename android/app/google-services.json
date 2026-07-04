@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "364568536342",
+    "project_id": "manor-ba6ec",
+    "storage_bucket": "manor-ba6ec.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:364568536342:android:ff84a3ec14c7756d655c37",
+        "android_client_info": {
+          "package_name": "co.manorestates.manor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD5_I2mxvCdU2oCMQODsX7QxQs4UWMkxIE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

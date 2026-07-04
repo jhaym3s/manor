@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // A resident's own profile, created client-side once a matching
+    // residentInvites/{phone} doc is found (see AuthRepository.loadOrCreateProfile).
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      // Residents can't change their own role/estate/household after creation —
+      // only the (future) admin tooling should be able to do that.
+      allow update: if isSignedIn() && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.estateId == resource.data.estateId
+        && request.resource.data.householdId == resource.data.householdId;
+      allow delete: if false;
+    }
+
+    // Created by estate admins (currently via Firebase Console — no admin
+    // tooling exists yet). A resident may only read/claim the invite that
+    // matches their own verified phone number.
+    match /residentInvites/{phone} {
+      allow read: if isSignedIn() && request.auth.token.phone_number == phone;
+      allow update: if isSignedIn()
+        && request.auth.token.phone_number == phone
+        && resource.data.claimed != true
+        && request.resource.data.claimed == true
+        && request.resource.data.claimedByUid == request.auth.uid
+        && request.resource.data.fullName == resource.data.fullName
+        && request.resource.data.estateId == resource.data.estateId
+        && request.resource.data.householdId == resource.data.householdId
+        && request.resource.data.role == resource.data.role;
+      allow create, delete: if false;
+    }
+
+    // Deny everything else by default until those features are built.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
