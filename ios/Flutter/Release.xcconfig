@@ -1,2 +1,6 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+// This file also backs the Profile build configuration (see Runner's
+// baseConfigurationReference in project.pbxproj), which needs its own
+// generated Pods xcconfig included or Firebase fails to link in profile builds.
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"
 #include "Generated.xcconfig"
