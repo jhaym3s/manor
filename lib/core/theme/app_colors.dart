@@ -38,6 +38,25 @@ class AppColors {
   static const Color officialLight = Color(0xFFF0FDF4);
   static const Color officialBorder = Color(0xFF86EFAC);
 
+  // Canonical status colors — use these (not success/error/warning directly)
+  // for anything representing a pending/resolved/overdue-emergency state, so
+  // the same status always renders the same color everywhere in the app.
+  static const Color statusPending = warning;
+  static const Color statusPendingLight = warningLight;
+  static const Color statusPendingBorder = warningBorder;
+
+  static const Color statusResolved = success;
+  static const Color statusResolvedLight = successLight;
+  static const Color statusResolvedBorder = successBorder;
+
+  static const Color statusOverdue = error;
+  static const Color statusOverdueLight = errorLight;
+  static const Color statusOverdueBorder = errorBorder;
+
+  static const Color statusEmergency = error;
+  static const Color statusEmergencyLight = errorLight;
+  static const Color statusEmergencyBorder = errorBorder;
+
   // Border Colors
   static const Color border = Color(0xFFE2E8F0);
   static const Color borderLight = Color(0xFFF1F5F9);

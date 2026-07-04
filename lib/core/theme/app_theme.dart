@@ -2,9 +2,23 @@ import 'package:flutter/material.dart';
 import 'app_colors.dart';
 
 class AppTheme {
+  // Canonical card shape/elevation tokens — reach for these instead of
+  // picking a new radius/shadow per screen.
+  static const double cardRadiusSmall = 14;
+  static const double cardRadius = 16;
+  static const double cardRadiusLarge = 20;
+  static const double chipRadius = 8;
+
+  static List<BoxShadow> cardShadow = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.04),
+      blurRadius: 10,
+      offset: const Offset(0, 4),
+    ),
+  ];
+
   static ThemeData lightTheme = ThemeData(
     useMaterial3: true,
-    fontFamily: 'PlusJakartaSans',
     scaffoldBackgroundColor: AppColors.background,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.primary,
@@ -15,10 +29,41 @@ class AppTheme {
       background: AppColors.background,
       error: AppColors.error,
     ),
+    textTheme: const TextTheme(
+      // Page titles, e.g. "Bills & Payments"
+      headlineLarge: TextStyle(
+        fontSize: 26,
+        fontWeight: FontWeight.w800,
+        color: AppColors.textPrimary,
+      ),
+      // Section headings, e.g. "Quick Actions"
+      titleMedium: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w700,
+        color: AppColors.textPrimary,
+      ),
+      // Body / secondary copy
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textSecondary,
+      ),
+      // Captions / timestamps / helper text
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: AppColors.textTertiary,
+      ),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
       elevation: 0,
+      titleTextStyle: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w800,
+        color: Colors.white,
+      ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: Colors.white,
