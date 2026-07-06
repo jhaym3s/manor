@@ -22,7 +22,8 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<!-- Required for Firebase Phone Auth's reCAPTCHA verification
-				     fallback (no APNs silent-push verification configured yet). -->
+				     fallback path (used when APNs silent-push isn't available,
+				     e.g. simulator or missing APNs token). -->
 				<string>co.manorestates.manor</string>
 			</array>
 		</dict>

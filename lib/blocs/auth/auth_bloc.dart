@@ -16,7 +16,7 @@ const _devBypassUser = AppUser(
   uid: 'dev-bypass-uid',
   phone: '+2340000000000',
   fullName: 'Dev Resident',
-  role: 'security',
+  role: 'resident',
   estateId: 'dev-estate',
   householdId: 'dev-household',
 );
