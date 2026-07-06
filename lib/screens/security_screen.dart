@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -158,7 +159,10 @@ class _SecurityScreenState extends State<SecurityScreen> {
           },
         ),
         const SizedBox(height: 10),
-        _buildSecurityOption('🚨', 'Report Emergency', true, () {}),
+        _buildSecurityOption('🚨', 'Report Emergency', true, () {
+          Navigator.pop(context);
+          context.push('/emergency');
+        }),
 
         const SizedBox(height: 16),
         SizedBox(

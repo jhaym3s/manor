@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:manor/screens/active_code_screens.dart';
 import 'package:manor/screens/pending_bills.dart';
@@ -472,6 +473,7 @@ class _HomeScreenState extends State<HomeScreen> {
           const SizedBox(height: 10),
           _buildSecurityOption('🚨', 'Report Emergency', true, () {
             Navigator.pop(context);
+            context.push('/emergency');
           }),
           const SizedBox(height: 16),
           SizedBox(
