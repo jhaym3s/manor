@@ -470,10 +470,6 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pop(context);
           }),
           const SizedBox(height: 10),
-          _buildSecurityOption('💬', 'Send Message', false, () {
-            Navigator.pop(context);
-          }),
-          const SizedBox(height: 10),
           _buildSecurityOption('🚨', 'Report Emergency', true, () {
             Navigator.pop(context);
           }),

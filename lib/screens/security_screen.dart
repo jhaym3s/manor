@@ -158,8 +158,6 @@ class _SecurityScreenState extends State<SecurityScreen> {
           },
         ),
         const SizedBox(height: 10),
-        _buildSecurityOption('💬', 'Send Message', false, () {}),
-        const SizedBox(height: 10),
         _buildSecurityOption('🚨', 'Report Emergency', true, () {}),
 
         const SizedBox(height: 16),
