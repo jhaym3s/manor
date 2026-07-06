@@ -7,7 +7,11 @@ import '../models/bill.dart';
 import '../widgets/custom_bottom_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Switches the parent [MainScreen] to the Feed tab. Null-safe so the
+  /// screen still builds if used standalone.
+  final VoidCallback? onOpenFeed;
+
+  const HomeScreen({super.key, this.onOpenFeed});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -314,10 +318,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _buildQuickActionItem(
-            Icons.chat_bubble,
-            'Feed',
-            AppColors.purpleGradient,
+          child: GestureDetector(
+            onTap: widget.onOpenFeed,
+            behavior: HitTestBehavior.opaque,
+            child: _buildQuickActionItem(
+              Icons.chat_bubble,
+              'Feed',
+              AppColors.purpleGradient,
+            ),
           ),
         ),
         const SizedBox(width: 8),
