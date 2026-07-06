@@ -83,7 +83,8 @@ class AppHeader extends StatelessWidget {
                     ],
                   ),
                   GestureDetector(
-                    onTap: onNotificationTap,
+                    onTap: onNotificationTap ??
+                        () => context.push('/notifications'),
                     child: Stack(
                       children: [
                         Container(

@@ -6,6 +6,7 @@ import '../../screens/auth/otp_verification_screen.dart';
 import '../../screens/auth/phone_entry_screen.dart';
 import '../../screens/auth/welcome_screen.dart';
 import '../../screens/main_screen.dart';
+import '../../screens/notifications_screen.dart';
 import '../../screens/profile_screen.dart';
 import '../../screens/security/security_home_screen.dart';
 import '../../screens/security/verify_visitor_screen.dart';
@@ -77,6 +78,10 @@ GoRouter buildAppRouter() {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/security',
