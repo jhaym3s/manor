@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:manor/core/theme/app_colors.dart';
+import '../blocs/auth/auth_bloc.dart';
 import '../models/post.dart';
 import '../widgets/post_card.dart';
 
@@ -11,22 +13,13 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> {
-  List<Post> posts = Post.getSamplePosts();
-  String feedFilter = 'all';
+  // Only official estate announcements belong in this feed — residents
+  // can no longer post (see [_showComposeModal]/[canCompose]), so there's
+  // nothing else to filter between.
+  List<Post> posts = Post.getSamplePosts().where((p) => p.isOfficial).toList();
 
-  List<Post> get filteredPosts {
-    switch (feedFilter) {
-      case 'official':
-        return posts.where((p) => p.isOfficial).toList();
-      case 'residents':
-        return posts.where((p) => !p.isOfficial).toList();
-      default:
-        return posts;
-    }
-  }
-
-  List<Post> get pinnedPosts => filteredPosts.where((p) => p.isPinned).toList();
-  List<Post> get regularPosts => filteredPosts.where((p) => !p.isPinned).toList();
+  List<Post> get pinnedPosts => posts.where((p) => p.isPinned).toList();
+  List<Post> get regularPosts => posts.where((p) => !p.isPinned).toList();
 
   void _toggleLike(int postId) {
     setState(() {
@@ -99,10 +92,10 @@ class _FeedScreenState extends State<FeedScreen> {
                             ? () {
                                 final newPost = Post(
                                   id: DateTime.now().millisecondsSinceEpoch,
-                                  author: 'James Anderson',
-                                  handle: '@unit_12b',
-                                  avatar: 'JA',
-                                  isMe: true,
+                                  author: 'Estate Management',
+                                  handle: '@management',
+                                  avatar: '🏢',
+                                  isOfficial: true,
                                   content: postText,
                                   time: 'Just now',
                                   likes: 0,
@@ -117,7 +110,9 @@ class _FeedScreenState extends State<FeedScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
-                            color: postText.isNotEmpty ? Colors.white : Colors.white54,
+                            color: postText.isNotEmpty
+                                ? Colors.white
+                                : Colors.white54,
                           ),
                         ),
                       ),
@@ -133,25 +128,21 @@ class _FeedScreenState extends State<FeedScreen> {
                     Container(
                       width: 44,
                       height: 44,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: AppColors.primaryGradient,
+                        gradient: LinearGradient(
+                          colors: [AppColors.official, Color(0xFF15803D)],
+                        ),
                       ),
                       child: const Center(
-                        child: Text(
-                          'JA',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: Text('🏢', style: TextStyle(fontSize: 18)),
                       ),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: TextField(
-                        onChanged: (value) => setModalState(() => postText = value),
+                        onChanged: (value) =>
+                            setModalState(() => postText = value),
                         maxLines: 5,
                         minLines: 3,
                         maxLength: 280,
@@ -160,7 +151,9 @@ class _FeedScreenState extends State<FeedScreen> {
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
                           focusedBorder: InputBorder.none,
-                          counterStyle: TextStyle(color: AppColors.textTertiary),
+                          counterStyle: TextStyle(
+                            color: AppColors.textTertiary,
+                          ),
                         ),
                         style: const TextStyle(
                           fontSize: 16,
@@ -199,6 +192,13 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Only estate admins can post to the feed — residents are read-only
+    // (can still like). Admin management happens outside this app, but the
+    // check is role-based rather than hard-removed in case that ever changes.
+    final canCompose = context.select<AuthBloc, bool>(
+      (bloc) => bloc.state.user?.role == 'admin',
+    );
+
     return Column(
       children: [
         // Header with Compose Button
@@ -215,40 +215,26 @@ class _FeedScreenState extends State<FeedScreen> {
                   color: AppColors.textPrimary,
                 ),
               ),
-              GestureDetector(
-                onTap: _showComposeModal,
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.purpleGradient,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.purple.withOpacity(0.4),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+              if (canCompose)
+                GestureDetector(
+                  onTap: _showComposeModal,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.purpleGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.purple.withOpacity(0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add, color: Colors.white, size: 20),
                   ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 20),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Filter Tabs
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              _buildFilterTab('All Posts', 'all'),
-              const SizedBox(width: 8),
-              _buildFilterTab('🏢 Official', 'official'),
-              const SizedBox(width: 8),
-              _buildFilterTab('👥 Residents', 'residents'),
             ],
           ),
         ),
@@ -260,52 +246,30 @@ class _FeedScreenState extends State<FeedScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
             children: [
               // Pinned Posts
-              ...pinnedPosts.map((post) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: PostCard(
-                  post: post,
-                  onLike: () => _toggleLike(post.id),
+              ...pinnedPosts.map(
+                (post) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PostCard(
+                    post: post,
+                    onLike: () => _toggleLike(post.id),
+                  ),
                 ),
-              )),
+              ),
 
               // Regular Posts
-              ...regularPosts.map((post) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: PostCard(
-                  post: post,
-                  onLike: () => _toggleLike(post.id),
+              ...regularPosts.map(
+                (post) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: PostCard(
+                    post: post,
+                    onLike: () => _toggleLike(post.id),
+                  ),
                 ),
-              )),
+              ),
             ],
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildFilterTab(String label, String filter) {
-    final isSelected = feedFilter == filter;
-    return GestureDetector(
-      onTap: () => setState(() => feedFilter = filter),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: 1.5,
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
-          ),
-        ),
-      ),
     );
   }
 }

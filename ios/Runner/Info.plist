@@ -22,7 +22,11 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<!-- Required for Firebase Phone Auth's reCAPTCHA verification
-				     fallback (no APNs silent-push verification configured yet). -->
+				     fallback path (used when APNs silent-push isn't available,
+				     e.g. simulator or missing APNs token). Firebase Auth derives
+				     this scheme from GOOGLE_APP_ID (colons -> hyphens) because the
+				     project has no REVERSED_CLIENT_ID (no Google Sign-In). -->
+				<string>app-1-364568536342-ios-6e4a8dd7bfe80689655c37</string>
 				<string>co.manorestates.manor</string>
 			</array>
 		</dict>
