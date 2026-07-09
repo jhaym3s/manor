@@ -1,30 +1,100 @@
 rules_version = '2';
+// ===========================================================================
+// Manor Estates — Firestore security rules (SHARED backend: manor-ba6ec)
+// ---------------------------------------------------------------------------
+// Synced from manor_admin/firestore.rules (the canonical copy — see that
+// repo's README). It keeps every existing resident rule verbatim and ADDS
+// admin-gated access for the admin dashboard's collections. Keep the two
+// copies in sync; manor_admin's is the source of truth.
+//
+// Admin identity: a caller is an admin iff their users/{uid} doc has
+// role == 'admin'. We check the stored doc (via get()) rather than trusting
+// any client-supplied value. Admins sign in with email/password.
+//
+// ESTATE SCOPING: each admin is assigned to exactly one estate via
+// users/{uid}.estateId. isEstateAdmin(estateId) additionally requires that
+// field to match the resource's estate, so an admin can only read/write
+// residents, dues, visitor logs, incidents and invites for their OWN estate.
+// role and estateId are immutable through the app (even for admins) so a
+// scoped admin can't reassign themselves — those two fields only change via
+// the Firebase Console, same as the bootstrap steps below.
+//
+// BOOTSTRAP: the very first admin cannot be created by these rules (no admin
+// exists yet to authorize it, and the resident self-create rule forbids
+// setting role != the invite's role). Create the first admin manually:
+//   1. Firebase Console -> Authentication -> Add user (email/password).
+//   2. Firestore -> users -> add doc with the new user's UID as the id and
+//      fields: fullName, phone (any placeholder), role: "admin",
+//      estateId: "<the estate doc id they should manage>".
+// Any additional estate's first admin is bootstrapped the same way.
+//
+// DEPLOY: if `firebase deploy` / firebase-tools is broken in your env, paste
+// this whole file into Firebase Console -> Firestore Database -> Rules -> Publish.
+// ===========================================================================
 service cloud.firestore {
   match /databases/{database}/documents {
+
     function isSignedIn() {
       return request.auth != null;
     }
 
-    // A resident's own profile, created client-side once a matching
-    // residentInvites/{phone} doc is found (see AuthRepository.loadOrCreateProfile).
-    match /users/{userId} {
-      allow read: if isSignedIn() && request.auth.uid == userId;
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      // Residents can't change their own role/estate/household after creation —
-      // only the (future) admin tooling should be able to do that.
-      allow update: if isSignedIn() && request.auth.uid == userId
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.estateId == resource.data.estateId
-        && request.resource.data.householdId == resource.data.householdId;
-      allow delete: if false;
+    // True when the signed-in caller has an admin users/{uid} doc.
+    function isAdmin() {
+      return isSignedIn()
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // Created by estate admins (currently via Firebase Console — no admin
-    // tooling exists yet). A resident may only read/claim the invite that
-    // matches their own verified phone number.
+    // The estateId on the caller's own users/{uid} doc (assumes isAdmin()).
+    function callerEstateId() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.estateId;
+    }
+
+    // True when the signed-in caller is an admin scoped to this specific estate.
+    function isEstateAdmin(estateId) {
+      return isAdmin() && callerEstateId() == estateId;
+    }
+
+    // -----------------------------------------------------------------------
+    // users/{uid}
+    // Residents self-create/read (unchanged). Admins get access scoped to
+    // their own estate so the dashboard can view/fix residents there —
+    // never another estate's. role/estateId are immutable via this rule for
+    // everyone (including admins); change them in the Console (bootstrap).
+    // -----------------------------------------------------------------------
+    match /users/{userId} {
+      allow read: if (isSignedIn() && request.auth.uid == userId)
+        || isEstateAdmin(resource.data.estateId);
+      allow create: if (isSignedIn() && request.auth.uid == userId)
+        || isEstateAdmin(request.resource.data.estateId);
+      // Residents can't change their own role/estate/household — only the
+      // Console can. Admins may edit other fields for residents in their own
+      // estate, but may not move a user's role or estateId.
+      allow update: if (
+        isSignedIn() && request.auth.uid == userId
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.estateId == resource.data.estateId
+        && request.resource.data.householdId == resource.data.householdId
+      ) || (
+        isEstateAdmin(resource.data.estateId)
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.estateId == resource.data.estateId
+      );
+      allow delete: if isEstateAdmin(resource.data.estateId);
+    }
+
+    // -----------------------------------------------------------------------
+    // residentInvites/{phone}  (doc id = E.164 phone number)
+    // Residents may read + claim their own invite (unchanged). Admins get
+    // full CRUD scoped to their own estate.
+    // -----------------------------------------------------------------------
     match /residentInvites/{phone} {
-      allow read: if isSignedIn() && request.auth.token.phone_number == phone;
-      allow update: if isSignedIn()
+      allow read: if isEstateAdmin(resource.data.estateId)
+        || (isSignedIn() && request.auth.token.phone_number == phone);
+
+      // Resident claim path (unchanged) OR an estate admin update.
+      allow update: if isEstateAdmin(resource.data.estateId) || (
+        isSignedIn()
         && request.auth.token.phone_number == phone
         && resource.data.claimed != true
         && request.resource.data.claimed == true
@@ -32,11 +102,73 @@ service cloud.firestore {
         && request.resource.data.fullName == resource.data.fullName
         && request.resource.data.estateId == resource.data.estateId
         && request.resource.data.householdId == resource.data.householdId
-        && request.resource.data.role == resource.data.role;
-      allow create, delete: if false;
+        && request.resource.data.role == resource.data.role
+      );
+
+      // New invites must be tagged to the creating admin's own estate.
+      allow create: if isEstateAdmin(request.resource.data.estateId);
+      allow delete: if isEstateAdmin(resource.data.estateId);
     }
 
-    // Deny everything else by default until those features are built.
+    // -----------------------------------------------------------------------
+    // estates/{estateId} and nested households / dues / visitorLogs / incidents
+    // -----------------------------------------------------------------------
+    match /estates/{estateId} {
+      // Any signed-in user may read estate info (mobile app can show it later).
+      allow read: if isSignedIn();
+      // Any admin may create a new estate (there's no admin scoped to it yet —
+      // bootstrap it, then assign an admin's estateId via the Console). Only
+      // the estate's own admin may rename/delete it afterward.
+      allow create: if isAdmin();
+      allow update, delete: if isEstateAdmin(estateId);
+
+      // A managed list of street names for this estate — households
+      // reference one via streetId (see src/lib/types.ts).
+      match /streets/{streetId} {
+        allow read: if isSignedIn();
+        allow write: if isEstateAdmin(estateId);
+      }
+
+      match /households/{householdId} {
+        allow read: if isSignedIn();
+        allow write: if isEstateAdmin(estateId);
+      }
+
+      // Dues are financial data — scoped to the estate's own admin.
+      match /dues/{dueId} {
+        allow read, write: if isEstateAdmin(estateId);
+      }
+
+      // Security data — scoped to the estate's own admin.
+      match /visitorLogs/{logId} {
+        allow read, write: if isEstateAdmin(estateId);
+      }
+      match /incidents/{incidentId} {
+        allow read, write: if isEstateAdmin(estateId);
+      }
+    }
+
+    // Enables collectionGroup('households') queries for the estate's own
+    // admin (e.g. resolving household names without knowing the parent path).
+    match /{path=**}/households/{householdId} {
+      allow read: if isEstateAdmin(resource.data.estateId);
+    }
+
+    // -----------------------------------------------------------------------
+    // announcements/{id}
+    // Readable by any signed-in user (the mobile Feed will read these once it
+    // is migrated off mock data) — this includes other estates' broadcasts,
+    // which is intentional (low-sensitivity content, not resident data).
+    // Writable only by the estate admin whose estateId matches — an admin
+    // can't post to "All estates" (null estateId) or another estate.
+    // -----------------------------------------------------------------------
+    match /announcements/{announcementId} {
+      allow read: if isSignedIn();
+      allow create: if isEstateAdmin(request.resource.data.estateId);
+      allow update, delete: if isEstateAdmin(resource.data.estateId);
+    }
+
+    // Deny everything else by default.
     match /{document=**} {
       allow read, write: if false;
     }
