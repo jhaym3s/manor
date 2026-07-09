@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:manor/screens/active_code_screens.dart';
 import 'package:manor/screens/pending_bills.dart';
@@ -7,7 +8,11 @@ import '../models/bill.dart';
 import '../widgets/custom_bottom_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Switches the parent [MainScreen] to the Feed tab. Null-safe so the
+  /// screen still builds if used standalone.
+  final VoidCallback? onOpenFeed;
+
+  const HomeScreen({super.key, this.onOpenFeed});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -314,10 +319,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: _buildQuickActionItem(
-            Icons.chat_bubble,
-            'Feed',
-            AppColors.purpleGradient,
+          child: GestureDetector(
+            onTap: widget.onOpenFeed,
+            behavior: HitTestBehavior.opaque,
+            child: _buildQuickActionItem(
+              Icons.chat_bubble,
+              'Feed',
+              AppColors.purpleGradient,
+            ),
           ),
         ),
         const SizedBox(width: 8),
@@ -462,12 +471,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pop(context);
           }),
           const SizedBox(height: 10),
-          _buildSecurityOption('💬', 'Send Message', false, () {
-            Navigator.pop(context);
-          }),
-          const SizedBox(height: 10),
           _buildSecurityOption('🚨', 'Report Emergency', true, () {
             Navigator.pop(context);
+            context.push('/emergency');
           }),
           const SizedBox(height: 16),
           SizedBox(

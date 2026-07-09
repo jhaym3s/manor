@@ -17,22 +17,24 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const AccessScreen(),
-    const FeedScreen(),
-    const BillsScreen(),
-    const SecurityScreen(),
-  ];
+  void _goToTab(int index) => setState(() => _currentIndex = index);
 
   @override
   Widget build(BuildContext context) {
+    final screens = [
+      HomeScreen(onOpenFeed: () => _goToTab(2)),
+      const AccessScreen(),
+      const FeedScreen(),
+      const BillsScreen(),
+      const SecurityScreen(),
+    ];
+
     return Scaffold(
       body: Column(
         children: [
           const AppHeader(),
           Expanded(
-            child: _screens[_currentIndex],
+            child: screens[_currentIndex],
           ),
         ],
       ),

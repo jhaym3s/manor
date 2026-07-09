@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:manor/blocs/auth/auth_bloc.dart';
 import 'package:manor/core/theme/app_colors.dart';
 
@@ -36,20 +37,24 @@ class AppHeader extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _initials(fullName),
-                            style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
+                      GestureDetector(
+                        onTap: () => context.push('/profile'),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Center(
+                            child: Text(
+                              _initials(fullName),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
@@ -78,7 +83,8 @@ class AppHeader extends StatelessWidget {
                     ],
                   ),
                   GestureDetector(
-                    onTap: onNotificationTap,
+                    onTap: onNotificationTap ??
+                        () => context.push('/notifications'),
                     child: Stack(
                       children: [
                         Container(
