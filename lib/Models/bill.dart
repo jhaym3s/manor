@@ -15,6 +15,7 @@ class Bill extends Equatable {
   final String due;
   final String status; // 'pending', 'overdue', 'upcoming', 'paid'
   final String icon;
+  final DateTime? paidAt;
 
   const Bill({
     required this.id,
@@ -23,10 +24,11 @@ class Bill extends Equatable {
     required this.due,
     required this.status,
     required this.icon,
+    this.paidAt,
   });
 
   @override
-  List<Object?> get props => [id, name, amount, due, status, icon];
+  List<Object?> get props => [id, name, amount, due, status, icon, paidAt];
 
   factory Bill.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final data = doc.data()!;
@@ -39,6 +41,7 @@ class Bill extends Equatable {
       due: dueDate != null ? '${_monthAbbrev[dueDate.month - 1]} ${dueDate.day}' : 'No due date',
       status: data['status'] as String? ?? 'pending',
       icon: _iconFor(name),
+      paidAt: (data['paidAt'] as Timestamp?)?.toDate(),
     );
   }
 

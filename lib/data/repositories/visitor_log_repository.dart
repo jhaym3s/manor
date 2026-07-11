@@ -21,4 +21,22 @@ class VisitorLogRepository {
         .snapshots()
         .map((snapshot) => snapshot.docs.map(VisitorLog.fromFirestore).toList());
   }
+
+  /// Live visitor log entries for a single [householdId] — used for a
+  /// resident's own activity feed, as opposed to [watchVisitorLogs]'
+  /// estate-wide view for security staff. Not ordered server-side (a
+  /// where+orderBy combo would require a composite index) — callers sort
+  /// client-side.
+  Stream<List<VisitorLog>> watchVisitorLogsForHousehold(
+    String estateId,
+    String householdId,
+  ) {
+    return _firestore
+        .collection('estates')
+        .doc(estateId)
+        .collection('visitorLogs')
+        .where('householdId', isEqualTo: householdId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map(VisitorLog.fromFirestore).toList());
+  }
 }

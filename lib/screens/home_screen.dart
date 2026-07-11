@@ -6,11 +6,14 @@ import 'package:manor/blocs/auth/auth_bloc.dart';
 import 'package:manor/blocs/dues/dues_bloc.dart';
 import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
+import 'package:manor/core/utils/relative_time.dart';
+import 'package:manor/data/repositories/visitor_log_repository.dart';
 import 'package:manor/screens/active_code_screens.dart';
 import 'package:manor/screens/pending_bills.dart';
 import '../models/access_code.dart';
 import '../models/app_user.dart';
 import '../models/bill.dart';
+import '../models/visitor_log.dart';
 import '../widgets/custom_bottom_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -78,6 +81,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.select<AuthBloc, AppUser?>((bloc) => bloc.state.user);
     final bills = context.watch<DuesBloc>().state.bills;
     final accessCodes = context.watch<AccessCodesBloc>().state.codes;
     final pendingBillsCount = bills.where((b) => b.status != 'paid').length;
@@ -178,7 +182,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
             ],
           ),
           const SizedBox(height: 8),
-          _buildActivityList(),
+          _buildActivityList(user, bills, accessCodes),
         ],
       ),
     );
@@ -425,81 +429,72 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
     );
   }
 
-  Widget _buildActivityList() {
-    final activities = [
-      {'text': 'Family code used at gate', 'time': '2h ago', 'icon': '✓', 'color': AppColors.success},
-      {'text': 'New code: Cleaner', 'time': 'Yesterday', 'icon': '+', 'color': AppColors.primary},
-      {'text': 'Security levy paid', 'time': '3 days ago', 'icon': '₦', 'color': AppColors.info},
+  /// Merges dues + access codes + household-scoped visitor logs into one
+  /// sorted feed — there's no dedicated activity collection in
+  /// manor_admin's schema, so this is built client-side from the same
+  /// live sources already backing the rest of this screen.
+  Widget _buildActivityList(AppUser? user, List<Bill> bills, List<AccessCode> codes) {
+    if (user?.estateId == null || user?.householdId == null) {
+      return const _ActivityList(items: []);
+    }
+
+    return StreamBuilder<List<VisitorLog>>(
+      stream: getIt<VisitorLogRepository>().watchVisitorLogsForHousehold(
+        user!.estateId!,
+        user.householdId!,
+      ),
+      builder: (context, snapshot) {
+        final visitorLogs = snapshot.data ?? const [];
+        final items = _mergeActivity(bills, codes, visitorLogs);
+        return _ActivityList(items: items);
+      },
+    );
+  }
+
+  List<_ActivityItem> _mergeActivity(
+    List<Bill> bills,
+    List<AccessCode> codes,
+    List<VisitorLog> visitorLogs,
+  ) {
+    final items = <_ActivityItem>[
+      for (final bill in bills)
+        if (bill.status == 'paid' && bill.paidAt != null)
+          _ActivityItem(
+            icon: '₦',
+            color: AppColors.info,
+            text: '${bill.name} paid',
+            time: bill.paidAt!,
+          ),
+      for (final code in codes)
+        if (code.createdAt != null)
+          _ActivityItem(
+            icon: '+',
+            color: AppColors.primary,
+            text: 'New code: ${code.name}',
+            time: code.createdAt!,
+          ),
+      for (final log in visitorLogs)
+        if (_visitorLogActivity(log) != null) _visitorLogActivity(log)!,
     ];
 
-    return Column(
-      children: activities.map((activity) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.03),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: activity['color'] as Color,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Center(
-                  child: Text(
-                    activity['icon'] as String,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      activity['text'] as String,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      activity['time'] as String,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                size: 20,
-                color: AppColors.textTertiary,
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
+    items.sort((a, b) => b.time.compareTo(a.time));
+    return items.take(5).toList();
+  }
+
+  _ActivityItem? _visitorLogActivity(VisitorLog log) {
+    final time = log.displayTime;
+    if (time == null) return null;
+
+    switch (log.status) {
+      case VisitorLogStatus.checkedIn:
+        return _ActivityItem(icon: '✓', color: AppColors.success, text: '${log.visitorName} checked in', time: time);
+      case VisitorLogStatus.checkedOut:
+        return _ActivityItem(icon: '↩', color: AppColors.textSecondary, text: '${log.visitorName} checked out', time: time);
+      case VisitorLogStatus.denied:
+        return _ActivityItem(icon: '✕', color: AppColors.error, text: '${log.visitorName} denied entry', time: time);
+      case VisitorLogStatus.expected:
+        return null;
+    }
   }
 
   void _showSecurityModal(BuildContext context) {
@@ -560,6 +555,108 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ActivityItem {
+  final String icon;
+  final Color color;
+  final String text;
+  final DateTime time;
+
+  const _ActivityItem({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.time,
+  });
+}
+
+class _ActivityList extends StatelessWidget {
+  final List<_ActivityItem> items;
+
+  const _ActivityList({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Text(
+          'No recent activity yet.',
+          style: TextStyle(color: AppColors.textSecondary),
+        ),
+      );
+    }
+
+    return Column(
+      children: items.map((item) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: item.color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Center(
+                  child: Text(
+                    item.icon,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.text,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      formatRelativeTime(item.time),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textTertiary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                size: 20,
+                color: AppColors.textTertiary,
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
