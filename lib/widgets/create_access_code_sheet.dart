@@ -7,7 +7,7 @@ import 'custom_bottom_sheet.dart';
 class CreateAccessCodeSheet {
   static Future<void> show(
     BuildContext context, {
-    required void Function(AccessCode) onCreate,
+    required void Function(AccessCodeDraft) onCreate,
   }) {
     return CustomBottomSheet.show(
       context: context,
@@ -19,7 +19,7 @@ class CreateAccessCodeSheet {
 }
 
 class _CreateAccessCodeForm extends StatefulWidget {
-  final void Function(AccessCode) onCreate;
+  final void Function(AccessCodeDraft) onCreate;
 
   const _CreateAccessCodeForm({required this.onCreate});
 
@@ -35,18 +35,15 @@ class _CreateAccessCodeFormState extends State<_CreateAccessCodeForm> {
   String _generateCode() => (100000 + Random().nextInt(900000)).toString();
 
   void _submit() {
-    final newCode = AccessCode(
-      id: DateTime.now().millisecondsSinceEpoch,
+    final draft = AccessCodeDraft(
       name: codeName,
       code: _generateCode(),
       type: codeType,
-      expires: codeType == 'permanent'
-          ? null
-          : codeType == 'one-time'
-              ? '${duration}h'
-              : 'Weekly',
+      expiresAt: codeType == 'one-time'
+          ? DateTime.now().add(Duration(hours: int.parse(duration)))
+          : null,
     );
-    widget.onCreate(newCode);
+    widget.onCreate(draft);
     Navigator.pop(context);
   }
 

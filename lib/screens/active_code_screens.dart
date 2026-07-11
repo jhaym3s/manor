@@ -7,8 +7,8 @@ import '../widgets/create_access_code_sheet.dart';
 
 class ActiveCodesScreen extends StatefulWidget {
   final List<AccessCode> codes;
-  final Function(AccessCode) onAddCode;
-  final Function(int) onDeleteCode;
+  final Function(AccessCodeDraft) onAddCode;
+  final Function(String) onDeleteCode;
 
   const ActiveCodesScreen({
     super.key,
@@ -41,7 +41,11 @@ class _ActiveCodesScreenState extends State<ActiveCodesScreen> {
         filtered.sort((a, b) => a.type.compareTo(b.type));
         break;
       default:
-        filtered.sort((a, b) => b.id.compareTo(a.id));
+        filtered.sort((a, b) {
+          final aTime = a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          final bTime = b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0);
+          return bTime.compareTo(aTime);
+        });
     }
 
     return filtered;
@@ -352,10 +356,10 @@ class _ActiveCodesScreenState extends State<ActiveCodesScreen> {
                             ),
                           ),
                           Text(
-                            code.expires != null ? '⏱ ${code.expires}' : '✓ Never expires',
+                            code.expiresLabel != null ? '⏱ ${code.expiresLabel}' : '✓ Never expires',
                             style: TextStyle(
                               fontSize: 11,
-                              color: code.expires != null ? AppColors.textSecondary : AppColors.success,
+                              color: code.expiresLabel != null ? AppColors.textSecondary : AppColors.success,
                             ),
                           ),
                         ],

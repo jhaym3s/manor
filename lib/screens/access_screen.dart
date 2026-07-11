@@ -1,19 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:manor/blocs/access_codes/access_codes_bloc.dart';
+import 'package:manor/blocs/auth/auth_bloc.dart';
+import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:manor/core/theme/app_theme.dart';
 import '../models/access_code.dart';
+import '../models/app_user.dart';
 import '../widgets/create_access_code_sheet.dart';
 
-class AccessScreen extends StatefulWidget {
+class AccessScreen extends StatelessWidget {
   const AccessScreen({super.key});
 
   @override
-  State<AccessScreen> createState() => _AccessScreenState();
+  Widget build(BuildContext context) {
+    final user = context.select<AuthBloc, AppUser?>((bloc) => bloc.state.user);
+    return BlocProvider<AccessCodesBloc>(
+      create: (_) {
+        final bloc = getIt<AccessCodesBloc>();
+        if (user?.estateId != null && user?.householdId != null) {
+          bloc.add(AccessCodesStarted(user!.estateId!, user.householdId!));
+        }
+        return bloc;
+      },
+      child: const _AccessScreenContent(),
+    );
+  }
 }
 
-class _AccessScreenState extends State<AccessScreen> {
-  List<AccessCode> accessCodes = AccessCode.getSampleCodes();
+class _AccessScreenContent extends StatefulWidget {
+  const _AccessScreenContent();
+
+  @override
+  State<_AccessScreenContent> createState() => _AccessScreenContentState();
+}
+
+class _AccessScreenContentState extends State<_AccessScreenContent> {
   String? copiedCode;
 
   void _copyCode(String code) {
@@ -34,21 +57,22 @@ class _AccessScreenState extends State<AccessScreen> {
     );
   }
 
-  void _deleteCode(int id) {
-    setState(() {
-      accessCodes.removeWhere((code) => code.id == id);
-    });
+  void _deleteCode(String id) {
+    context.read<AccessCodesBloc>().add(AccessCodeDeleteRequested(id));
   }
 
   void _showNewCodeModal() {
     CreateAccessCodeSheet.show(
       context,
-      onCreate: (newCode) => setState(() => accessCodes.add(newCode)),
+      onCreate: (draft) =>
+          context.read<AccessCodesBloc>().add(AccessCodeCreateRequested(draft)),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final codes = context.watch<AccessCodesBloc>().state.codes;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -77,7 +101,7 @@ class _AccessScreenState extends State<AccessScreen> {
           const SizedBox(height: 20),
 
           // Code Cards
-          ...accessCodes.map((code) => _buildCodeCard(code)),
+          ...codes.map((code) => _buildCodeCard(code)),
         ],
       ),
     );
@@ -193,7 +217,7 @@ class _AccessScreenState extends State<AccessScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                code.expires != null ? '⏱ ${code.expires}' : '✓ Never expires',
+                code.expiresLabel != null ? '⏱ ${code.expiresLabel}' : '✓ Never expires',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.textSecondary,

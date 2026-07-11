@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:manor/blocs/access_codes/access_codes_bloc.dart';
 import 'package:manor/blocs/auth/auth_bloc.dart';
 import 'package:manor/blocs/dues/dues_bloc.dart';
 import 'package:manor/core/di/injection.dart';
@@ -22,14 +23,27 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = context.select<AuthBloc, AppUser?>((bloc) => bloc.state.user);
-    return BlocProvider<DuesBloc>(
-      create: (_) {
-        final bloc = getIt<DuesBloc>();
-        if (user?.estateId != null && user?.householdId != null) {
-          bloc.add(DuesStarted(user!.estateId!, user.householdId!));
-        }
-        return bloc;
-      },
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider<DuesBloc>(
+          create: (_) {
+            final bloc = getIt<DuesBloc>();
+            if (user?.estateId != null && user?.householdId != null) {
+              bloc.add(DuesStarted(user!.estateId!, user.householdId!));
+            }
+            return bloc;
+          },
+        ),
+        BlocProvider<AccessCodesBloc>(
+          create: (_) {
+            final bloc = getIt<AccessCodesBloc>();
+            if (user?.estateId != null && user?.householdId != null) {
+              bloc.add(AccessCodesStarted(user!.estateId!, user.householdId!));
+            }
+            return bloc;
+          },
+        ),
+      ],
       child: _HomeScreenContent(onOpenFeed: onOpenFeed),
     );
   }
@@ -45,14 +59,12 @@ class _HomeScreenContent extends StatefulWidget {
 }
 
 class _HomeScreenContentState extends State<_HomeScreenContent> {
-  List<AccessCode> accessCodes = AccessCode.getSampleCodes();
-
-  void _addCode(AccessCode code) {
-    setState(() => accessCodes.add(code));
+  void _addCode(AccessCodeDraft draft) {
+    context.read<AccessCodesBloc>().add(AccessCodeCreateRequested(draft));
   }
 
-  void _deleteCode(int id) {
-    setState(() => accessCodes.removeWhere((c) => c.id == id));
+  void _deleteCode(String id) {
+    context.read<AccessCodesBloc>().add(AccessCodeDeleteRequested(id));
   }
 
   void _payBill(String id) {
@@ -67,6 +79,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
   @override
   Widget build(BuildContext context) {
     final bills = context.watch<DuesBloc>().state.bills;
+    final accessCodes = context.watch<AccessCodesBloc>().state.codes;
     final pendingBillsCount = bills.where((b) => b.status != 'paid').length;
 
     return SingleChildScrollView(
@@ -92,7 +105,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                         onDeleteCode: _deleteCode,
                       ),
                     ),
-                  ).then((_) => setState(() {})),
+                  ),
                   child: _buildStatCard(
                     '🔐',
                     '${accessCodes.length}',
@@ -136,7 +149,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildQuickActions(context, bills),
+          _buildQuickActions(context, bills, accessCodes),
           const SizedBox(height: 24),
 
           // Recent Activity
@@ -302,7 +315,11 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, List<Bill> bills) {
+  Widget _buildQuickActions(
+    BuildContext context,
+    List<Bill> bills,
+    List<AccessCode> accessCodes,
+  ) {
     return Row(
       children: [
         Expanded(
@@ -316,7 +333,7 @@ class _HomeScreenContentState extends State<_HomeScreenContent> {
                   onDeleteCode: _deleteCode,
                 ),
               ),
-            ).then((_) => setState(() {})),
+            ),
             child: _buildQuickActionItem(
               Icons.lock,
               'New Code',

@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:manor/blocs/auth/auth_bloc.dart';
+import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:manor/core/theme/app_theme.dart';
+import 'package:manor/data/repositories/access_code_repository.dart';
 
 import '../../models/access_code.dart';
 
-/// Manual gate-code check. NOTE: there's no shared Firestore-backed visitor
-/// system yet, so this validates against the same local sample codes used
-/// elsewhere in the app — a placeholder for the real shared visitor lookup.
+/// Manual gate-code check against estates/{estateId}/accessCodes.
+///
+/// Blocked until manor_admin's firestore.rules grants security-role read
+/// access to accessCodes (currently only the owning resident can read their
+/// own household's codes) — verifying will fail with permission-denied
+/// until then.
 class VerifyVisitorScreen extends StatefulWidget {
   const VerifyVisitorScreen({super.key});
 
@@ -20,6 +27,8 @@ class _VerifyVisitorScreenState extends State<VerifyVisitorScreen> {
   final _controller = TextEditingController();
   AccessCode? _result;
   bool _checked = false;
+  bool _verifying = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -27,15 +36,30 @@ class _VerifyVisitorScreenState extends State<VerifyVisitorScreen> {
     super.dispose();
   }
 
-  void _verify() {
-    final code = _controller.text.trim();
-    final match = AccessCode.getSampleCodes()
-        .where((c) => c.code == code)
-        .firstOrNull;
+  Future<void> _verify() async {
+    final estateId = context.read<AuthBloc>().state.user?.estateId;
+    if (estateId == null) return;
+
     setState(() {
-      _result = match;
-      _checked = true;
+      _verifying = true;
+      _error = null;
     });
+    try {
+      final match = await getIt<AccessCodeRepository>().verifyCode(
+        estateId,
+        _controller.text.trim(),
+      );
+      setState(() {
+        _result = match;
+        _checked = true;
+        _verifying = false;
+      });
+    } catch (_) {
+      setState(() {
+        _verifying = false;
+        _error = 'Could not verify the code — try again.';
+      });
+    }
   }
 
   void _reset() {
@@ -43,6 +67,7 @@ class _VerifyVisitorScreenState extends State<VerifyVisitorScreen> {
       _controller.clear();
       _result = null;
       _checked = false;
+      _error = null;
     });
   }
 
@@ -126,16 +151,32 @@ class _VerifyVisitorScreenState extends State<VerifyVisitorScreen> {
             ),
           ),
         ),
+        if (_error != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            _error!,
+            style: const TextStyle(color: AppColors.statusOverdue, fontSize: 13),
+          ),
+        ],
         const SizedBox(height: 24),
         SizedBox(
           width: double.infinity,
           height: 64,
           child: ElevatedButton(
-            onPressed: isValid ? _verify : null,
+            onPressed: isValid && !_verifying ? _verify : null,
             style: ElevatedButton.styleFrom(
               textStyle: const TextStyle(fontSize: 20),
             ),
-            child: const Text('Verify'),
+            child: _verifying
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('Verify'),
           ),
         ),
       ],
