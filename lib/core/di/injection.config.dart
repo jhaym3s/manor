@@ -19,6 +19,7 @@ import 'package:manor/blocs/auth/auth_bloc.dart' as _i942;
 import 'package:manor/blocs/visitor_log/visitor_log_bloc.dart' as _i456;
 import 'package:manor/core/di/firebase_module.dart' as _i941;
 import 'package:manor/data/repositories/auth_repository.dart' as _i249;
+import 'package:manor/data/repositories/household_repository.dart' as _i876;
 import 'package:manor/data/repositories/visitor_log_repository.dart' as _i470;
 
 extension GetItInjectableX on _i174.GetIt {
@@ -44,6 +45,9 @@ extension GetItInjectableX on _i174.GetIt {
         gh<_i59.FirebaseAuth>(),
         gh<_i974.FirebaseFirestore>(),
       ),
+    );
+    gh.lazySingleton<_i876.HouseholdRepository>(
+      () => _i876.HouseholdRepository(gh<_i974.FirebaseFirestore>()),
     );
     gh.lazySingleton<_i470.VisitorLogRepository>(
       () => _i470.VisitorLogRepository(gh<_i974.FirebaseFirestore>()),

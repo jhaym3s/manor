@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:manor/core/theme/app_colors.dart';
 
 import '../blocs/auth/auth_bloc.dart';
+import '../core/di/injection.dart';
+import '../data/repositories/household_repository.dart';
 import '../models/app_user.dart';
+import '../models/household.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -106,11 +109,10 @@ class ProfileScreen extends StatelessWidget {
                           label: 'Estate',
                           value: user!.estateId!,
                         ),
-                      if (user?.householdId != null)
-                        _InfoRow(
-                          icon: Icons.home_outlined,
-                          label: 'Household',
-                          value: user!.householdId!,
+                      if (user?.estateId != null && user?.householdId != null)
+                        _HouseholdInfoRow(
+                          estateId: user!.estateId!,
+                          householdId: user.householdId!,
                         ),
                     ],
                   ),
@@ -375,6 +377,27 @@ class _InfoRow extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _HouseholdInfoRow extends StatelessWidget {
+  final String estateId;
+  final String householdId;
+
+  const _HouseholdInfoRow({required this.estateId, required this.householdId});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Household?>(
+      future: getIt<HouseholdRepository>().getHousehold(estateId, householdId),
+      builder: (context, snapshot) {
+        return _InfoRow(
+          icon: Icons.home_outlined,
+          label: 'Household',
+          value: snapshot.data?.name ?? '—',
+        );
+      },
     );
   }
 }

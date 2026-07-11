@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:manor/blocs/auth/auth_bloc.dart';
+import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
+import 'package:manor/data/repositories/household_repository.dart';
+import 'package:manor/models/app_user.dart';
+import 'package:manor/models/household.dart';
 
 class AppHeader extends StatelessWidget {
   final VoidCallback? onNotificationTap;
@@ -19,9 +23,8 @@ class AppHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fullName = context.select<AuthBloc, String>(
-      (bloc) => bloc.state.user?.fullName ?? 'Resident',
-    );
+    final user = context.select<AuthBloc, AppUser?>((bloc) => bloc.state.user);
+    final fullName = user?.fullName ?? 'Resident';
 
     return Container(
       decoration: const BoxDecoration(gradient: AppColors.headerGradient),
@@ -122,34 +125,56 @@ class AppHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.home_outlined, size: 14, color: Colors.white),
-                    SizedBox(width: 6),
-                    Text(
-                      '40 UDI',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _HouseholdChip(estateId: user?.estateId, householdId: user?.householdId),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _HouseholdChip extends StatelessWidget {
+  final String? estateId;
+  final String? householdId;
+
+  const _HouseholdChip({required this.estateId, required this.householdId});
+
+  static const _textStyle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w500,
+    color: Colors.white,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final estateId = this.estateId;
+    final householdId = this.householdId;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.home_outlined, size: 14, color: Colors.white),
+          const SizedBox(width: 6),
+          if (estateId == null || householdId == null)
+            const Text('—', style: _textStyle)
+          else
+            FutureBuilder<Household?>(
+              future: getIt<HouseholdRepository>().getHousehold(
+                estateId,
+                householdId,
+              ),
+              builder: (context, snapshot) {
+                return Text(snapshot.data?.name ?? '—', style: _textStyle);
+              },
+            ),
+        ],
       ),
     );
   }
