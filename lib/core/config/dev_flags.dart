@@ -6,4 +6,4 @@ library;
 /// and drops straight into the app with a mock resident profile.
 ///
 /// Flip this back to `false` once phone auth is confirmed working end to end.
-const bool kBypassAuth = true;
+const bool kBypassAuth = false;
