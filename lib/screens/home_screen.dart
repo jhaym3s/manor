@@ -1,13 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:manor/blocs/auth/auth_bloc.dart';
+import 'package:manor/blocs/dues/dues_bloc.dart';
+import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import 'package:manor/screens/active_code_screens.dart';
 import 'package:manor/screens/pending_bills.dart';
 import '../models/access_code.dart';
+import '../models/app_user.dart';
 import '../models/bill.dart';
 import '../widgets/custom_bottom_sheet.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   /// Switches the parent [MainScreen] to the Feed tab. Null-safe so the
   /// screen still builds if used standalone.
   final VoidCallback? onOpenFeed;
@@ -15,12 +20,32 @@ class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key, this.onOpenFeed});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    final user = context.select<AuthBloc, AppUser?>((bloc) => bloc.state.user);
+    return BlocProvider<DuesBloc>(
+      create: (_) {
+        final bloc = getIt<DuesBloc>();
+        if (user?.estateId != null && user?.householdId != null) {
+          bloc.add(DuesStarted(user!.estateId!, user.householdId!));
+        }
+        return bloc;
+      },
+      child: _HomeScreenContent(onOpenFeed: onOpenFeed),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenContent extends StatefulWidget {
+  final VoidCallback? onOpenFeed;
+
+  const _HomeScreenContent({this.onOpenFeed});
+
+  @override
+  State<_HomeScreenContent> createState() => _HomeScreenContentState();
+}
+
+class _HomeScreenContentState extends State<_HomeScreenContent> {
   List<AccessCode> accessCodes = AccessCode.getSampleCodes();
-  List<Bill> bills = Bill.getSampleBills();
 
   void _addCode(AccessCode code) {
     setState(() => accessCodes.add(code));
@@ -30,19 +55,20 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => accessCodes.removeWhere((c) => c.id == id));
   }
 
-  void _payBill(int id) {
-    setState(() {
-      final index = bills.indexWhere((b) => b.id == id);
-      if (index != -1) {
-        bills[index] = bills[index].copyWith(status: 'paid');
-      }
-    });
+  void _payBill(String id) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Online payments are coming soon.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
-
-  int get pendingBillsCount => bills.where((b) => b.status != 'paid').length;
 
   @override
   Widget build(BuildContext context) {
+    final bills = context.watch<DuesBloc>().state.bills;
+    final pendingBillsCount = bills.where((b) => b.status != 'paid').length;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -86,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPayBill: _payBill,
                       ),
                     ),
-                  ).then((_) => setState(() {})),
+                  ),
                   child: _buildStatCard(
                     '📋',
                     '$pendingBillsCount',
@@ -110,7 +136,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          _buildQuickActions(context),
+          _buildQuickActions(context, bills),
           const SizedBox(height: 24),
 
           // Recent Activity
@@ -276,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildQuickActions(BuildContext context, List<Bill> bills) {
     return Row(
       children: [
         Expanded(
@@ -309,7 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPayBill: _payBill,
                 ),
               ),
-            ).then((_) => setState(() {})),
+            ),
             child: _buildQuickActionItem(
               Icons.credit_card,
               'Pay Bills',

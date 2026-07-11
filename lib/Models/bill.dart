@@ -1,12 +1,22 @@
-class Bill {
-  final int id;
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:equatable/equatable.dart';
+
+const _monthAbbrev = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/// A due at `estates/{estateId}/dues/{dueId}` (see manor_admin's shared
+/// schema), shaped for the Bills UI. Read-only from this app for now.
+class Bill extends Equatable {
+  final String id;
   final String name;
   final double amount;
   final String due;
   final String status; // 'pending', 'overdue', 'upcoming', 'paid'
   final String icon;
 
-  Bill({
+  const Bill({
     required this.id,
     required this.name,
     required this.amount,
@@ -15,58 +25,29 @@ class Bill {
     required this.icon,
   });
 
-  Bill copyWith({
-    int? id,
-    String? name,
-    double? amount,
-    String? due,
-    String? status,
-    String? icon,
-  }) {
+  @override
+  List<Object?> get props => [id, name, amount, due, status, icon];
+
+  factory Bill.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
+    final data = doc.data()!;
+    final dueDate = (data['dueDate'] as Timestamp?)?.toDate();
+    final name = data['name'] as String? ?? 'Estate Due';
     return Bill(
-      id: id ?? this.id,
-      name: name ?? this.name,
-      amount: amount ?? this.amount,
-      due: due ?? this.due,
-      status: status ?? this.status,
-      icon: icon ?? this.icon,
+      id: doc.id,
+      name: name,
+      amount: (data['amount'] as num?)?.toDouble() ?? 0,
+      due: dueDate != null ? '${_monthAbbrev[dueDate.month - 1]} ${dueDate.day}' : 'No due date',
+      status: data['status'] as String? ?? 'pending',
+      icon: _iconFor(name),
     );
   }
 
-  static List<Bill> getSampleBills() {
-    return [
-      Bill(
-        id: 1,
-        name: 'Estate Service Charge',
-        amount: 450.00,
-        due: 'Dec 20',
-        status: 'pending',
-        icon: '🏛️',
-      ),
-      Bill(
-        id: 2,
-        name: 'Security Levy',
-        amount: 120.00,
-        due: 'Dec 15',
-        status: 'overdue',
-        icon: '🛡️',
-      ),
-      Bill(
-        id: 3,
-        name: 'Waste Management',
-        amount: 35.00,
-        due: 'Jan 5',
-        status: 'upcoming',
-        icon: '♻️',
-      ),
-      Bill(
-        id: 4,
-        name: 'Water Bill',
-        amount: 78.50,
-        due: 'Dec 28',
-        status: 'pending',
-        icon: '💧',
-      ),
-    ];
+  static String _iconFor(String name) {
+    final lower = name.toLowerCase();
+    if (lower.contains('security')) return '🛡️';
+    if (lower.contains('water')) return '💧';
+    if (lower.contains('waste')) return '♻️';
+    if (lower.contains('service')) return '🏛️';
+    return '💳';
   }
 }

@@ -4,7 +4,7 @@ import '../models/bill.dart';
 
 class PendingBillsScreen extends StatefulWidget {
   final List<Bill> bills;
-  final Function(int) onPayBill;
+  final Function(String) onPayBill;
 
   const PendingBillsScreen({
     super.key,
@@ -19,7 +19,7 @@ class PendingBillsScreen extends StatefulWidget {
 class _PendingBillsScreenState extends State<PendingBillsScreen> {
   String _filterStatus = 'pending';
   String _sortBy = 'due';
-  Set<int> _selectedBills = {};
+  Set<String> _selectedBills = {};
 
   List<Bill> get filteredBills {
     List<Bill> filtered = List.from(widget.bills);
@@ -63,7 +63,7 @@ class _PendingBillsScreenState extends State<PendingBillsScreen> {
 
   int get overdueCount => widget.bills.where((b) => b.status == 'overdue').length;
 
-  void _toggleSelection(int billId) {
+  void _toggleSelection(String billId) {
     setState(() {
       if (_selectedBills.contains(billId)) {
         _selectedBills.remove(billId);
@@ -86,273 +86,9 @@ class _PendingBillsScreenState extends State<PendingBillsScreen> {
     setState(() => _selectedBills.clear());
   }
 
-  void _showPayModal(Bill bill) {
-    String selectedMethod = 'card';
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFCBD5E1),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Pay Bill',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  bill.name,
-                  style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: AppColors.surfaceVariant,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(bill.icon, style: const TextStyle(fontSize: 36)),
-                      const SizedBox(height: 8),
-                      Text(
-                        '₦${bill.amount.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'Due: ${bill.due}',
-                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                _buildPaymentMethodOption(
-                  '💳', 'Debit Card', selectedMethod == 'card',
-                  () => setModalState(() => selectedMethod = 'card'),
-                ),
-                const SizedBox(height: 10),
-                _buildPaymentMethodOption(
-                  '🏦', 'Bank Transfer', selectedMethod == 'bank',
-                  () => setModalState(() => selectedMethod = 'bank'),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          widget.onPayBill(bill.id);
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('Payment successful!'),
-                              backgroundColor: AppColors.success,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text('Confirm'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   void _paySelectedBills() {
     if (_selectedBills.isEmpty) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFCBD5E1),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Pay Selected Bills',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${_selectedBills.length} bills selected',
-                style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Total Amount',
-                      style: TextStyle(fontSize: 13, color: Colors.white70),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '₦${selectedTotal.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel'),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        for (var id in _selectedBills) {
-                          widget.onPayBill(id);
-                        }
-                        Navigator.pop(context);
-                        setState(() => _selectedBills.clear());
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('All payments successful!'),
-                            backgroundColor: AppColors.success,
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                          ),
-                        );
-                      },
-                      child: const Text('Pay All'),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentMethodOption(String icon, String label, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceVariant,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 22,
-              height: 22,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? AppColors.primary : AppColors.textTertiary,
-                  width: 2,
-                ),
-                color: isSelected ? AppColors.primary : Colors.transparent,
-              ),
-              child: isSelected
-                  ? const Icon(Icons.check, size: 12, color: Colors.white)
-                  : null,
-            ),
-            const SizedBox(width: 12),
-            Text(icon, style: const TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    widget.onPayBill(_selectedBills.first);
   }
 
   @override
@@ -665,7 +401,7 @@ class _PendingBillsScreenState extends State<PendingBillsScreen> {
 
     return GestureDetector(
       onTap: isPaid ? null : () => _toggleSelection(bill.id),
-      onLongPress: isPaid ? null : () => _showPayModal(bill),
+      onLongPress: isPaid ? null : () => widget.onPayBill(bill.id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
@@ -784,7 +520,7 @@ class _PendingBillsScreenState extends State<PendingBillsScreen> {
                       const SizedBox(height: 4),
                       if (!isPaid)
                         GestureDetector(
-                          onTap: () => _showPayModal(bill),
+                          onTap: () => widget.onPayBill(bill.id),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
