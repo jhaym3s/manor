@@ -126,10 +126,6 @@ class PostCard extends StatelessWidget {
                             const SizedBox(width: 6),
                             _buildVerifiedBadge(),
                           ],
-                          if (post.isMe) ...[
-                            const SizedBox(width: 6),
-                            _buildYouBadge(),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 2),
@@ -181,9 +177,8 @@ class PostCard extends StatelessWidget {
             Row(
               children: [
                 _buildActionButton(
-                  icon: post.liked ? Icons.favorite : Icons.favorite_border,
+                  icon: Icons.favorite_border,
                   label: '${post.likes}',
-                  color: post.liked ? AppColors.error : AppColors.textSecondary,
                   onTap: onLike,
                 ),
                 const SizedBox(width: 24),
@@ -218,11 +213,9 @@ class PostCard extends StatelessWidget {
             ? const LinearGradient(
                 colors: [AppColors.official, Color(0xFF15803D)],
               )
-            : post.isMe
-                ? AppColors.primaryGradient
-                : const LinearGradient(
-                    colors: [Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
-                  ),
+            : const LinearGradient(
+                colors: [Color(0xFFE2E8F0), Color(0xFFCBD5E1)],
+              ),
       ),
       child: Center(
         child: Text(
@@ -230,9 +223,7 @@ class PostCard extends StatelessWidget {
           style: TextStyle(
             fontSize: isEmoji ? 18 : 14,
             fontWeight: FontWeight.w700,
-            color: post.isOfficial || post.isMe
-                ? Colors.white
-                : AppColors.textSecondary,
+            color: post.isOfficial ? Colors.white : AppColors.textSecondary,
           ),
         ),
       ),
@@ -253,24 +244,6 @@ class PostCard extends StatelessWidget {
         Icons.check,
         size: 12,
         color: Colors.white,
-      ),
-    );
-  }
-
-  Widget _buildYouBadge() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: const Text(
-        'You',
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          color: AppColors.primary,
-        ),
       ),
     );
   }

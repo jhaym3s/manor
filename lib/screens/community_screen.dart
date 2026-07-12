@@ -1,34 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:manor/blocs/announcements/announcements_bloc.dart';
+import 'package:manor/core/di/injection.dart';
 import 'package:manor/core/theme/app_colors.dart';
 import '../blocs/auth/auth_bloc.dart';
-import '../models/post.dart';
 import '../widgets/post_card.dart';
 
-class FeedScreen extends StatefulWidget {
+class FeedScreen extends StatelessWidget {
   const FeedScreen({super.key});
 
   @override
-  State<FeedScreen> createState() => _FeedScreenState();
+  Widget build(BuildContext context) {
+    final estateId = context.select<AuthBloc, String?>((bloc) => bloc.state.user?.estateId);
+    return BlocProvider<AnnouncementsBloc>(
+      create: (_) => getIt<AnnouncementsBloc>()..add(AnnouncementsStarted(estateId)),
+      child: const _FeedScreenContent(),
+    );
+  }
 }
 
-class _FeedScreenState extends State<FeedScreen> {
-  // Only official estate announcements belong in this feed — residents
-  // can no longer post (see [_showComposeModal]/[canCompose]), so there's
-  // nothing else to filter between.
-  List<Post> posts = Post.getSamplePosts().where((p) => p.isOfficial).toList();
+class _FeedScreenContent extends StatefulWidget {
+  const _FeedScreenContent();
 
-  List<Post> get pinnedPosts => posts.where((p) => p.isPinned).toList();
-  List<Post> get regularPosts => posts.where((p) => !p.isPinned).toList();
+  @override
+  State<_FeedScreenContent> createState() => _FeedScreenContentState();
+}
 
-  void _toggleLike(int postId) {
-    setState(() {
-      final post = posts.firstWhere((p) => p.id == postId);
-      post.toggleLike();
-    });
+class _FeedScreenContentState extends State<_FeedScreenContent> {
+  void _showComingSoon(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Liking posts is coming soon.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
-  void _showComposeModal() {
+  void _showComposeModal(BuildContext context) {
+    final bloc = context.read<AnnouncementsBloc>();
     String postText = '';
 
     showModalBottomSheet(
@@ -90,18 +99,7 @@ class _FeedScreenState extends State<FeedScreen> {
                       child: TextButton(
                         onPressed: postText.isNotEmpty
                             ? () {
-                                final newPost = Post(
-                                  id: DateTime.now().millisecondsSinceEpoch,
-                                  author: 'Estate Management',
-                                  handle: '@management',
-                                  avatar: '🏢',
-                                  isOfficial: true,
-                                  content: postText,
-                                  time: 'Just now',
-                                  likes: 0,
-                                  comments: 0,
-                                );
-                                setState(() => posts.insert(0, newPost));
+                                bloc.add(AnnouncementCreateRequested(postText));
                                 Navigator.pop(context);
                               }
                             : null,
@@ -192,12 +190,20 @@ class _FeedScreenState extends State<FeedScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Only estate admins can post to the feed — residents are read-only
-    // (can still like). Admin management happens outside this app, but the
-    // check is role-based rather than hard-removed in case that ever changes.
+    // Only estate admins can post to the feed — residents are read-only.
+    // Admin management happens outside this app, but the check is
+    // role-based rather than hard-removed in case that ever changes.
     final canCompose = context.select<AuthBloc, bool>(
       (bloc) => bloc.state.user?.role == 'admin',
     );
+    final posts = context
+        .watch<AnnouncementsBloc>()
+        .state
+        .posts
+        .where((p) => p.isOfficial)
+        .toList();
+    final pinnedPosts = posts.where((p) => p.isPinned).toList();
+    final regularPosts = posts.where((p) => !p.isPinned).toList();
 
     return Column(
       children: [
@@ -217,7 +223,7 @@ class _FeedScreenState extends State<FeedScreen> {
               ),
               if (canCompose)
                 GestureDetector(
-                  onTap: _showComposeModal,
+                  onTap: () => _showComposeModal(context),
                   child: Container(
                     width: 42,
                     height: 42,
@@ -242,32 +248,39 @@ class _FeedScreenState extends State<FeedScreen> {
 
         // Posts List
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            children: [
-              // Pinned Posts
-              ...pinnedPosts.map(
-                (post) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: PostCard(
-                    post: post,
-                    onLike: () => _toggleLike(post.id),
+          child: posts.isEmpty
+              ? const Center(
+                  child: Text(
+                    'No announcements yet.',
+                    style: TextStyle(color: AppColors.textSecondary),
                   ),
-                ),
-              ),
+                )
+              : ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  children: [
+                    // Pinned Posts
+                    ...pinnedPosts.map(
+                      (post) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: PostCard(
+                          post: post,
+                          onLike: () => _showComingSoon(context),
+                        ),
+                      ),
+                    ),
 
-              // Regular Posts
-              ...regularPosts.map(
-                (post) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: PostCard(
-                    post: post,
-                    onLike: () => _toggleLike(post.id),
-                  ),
+                    // Regular Posts
+                    ...regularPosts.map(
+                      (post) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: PostCard(
+                          post: post,
+                          onLike: () => _showComingSoon(context),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
         ),
       ],
     );
